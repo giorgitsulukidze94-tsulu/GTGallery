@@ -207,6 +207,16 @@ function renderDetail(id) {
       '</div>';
 
     window.__photos = photos;
+    window.__mainPhotoIndex = mainIdx;
+
+    setupSwipe(document.getElementById('mainPhotoWrap'),
+      function () { setMainPhoto((window.__mainPhotoIndex + 1) % photos.length); },
+      function () { setMainPhoto((window.__mainPhotoIndex - 1 + photos.length) % photos.length); }
+    );
+    setupSwipe(document.getElementById('lightboxImg'),
+      function () { lightboxNav(1); },
+      function () { lightboxNav(-1); }
+    );
   });
 }
 
@@ -217,6 +227,7 @@ function videoEmbed(url) {
 }
 
 function setMainPhoto(i) {
+  window.__mainPhotoIndex = i;
   document.getElementById('mainPhotoImg').src = window.__photos[i];
   document.getElementById('mainPhotoImg').setAttribute('onclick', 'openLightbox(' + i + ')');
   document.querySelectorAll('#thumbRow img').forEach(function (img, idx) {
@@ -237,6 +248,24 @@ function openLightbox(i) {
   window.__lightboxIndex = i;
   document.getElementById('lightboxImg').src = window.__photos[i];
   document.getElementById('lightbox').style.display = 'flex';
+}
+
+function setupSwipe(el, onLeft, onRight) {
+  if (!el) return;
+  var startX = null, startY = null;
+  el.addEventListener('touchstart', function (e) {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  el.addEventListener('touchend', function (e) {
+    if (startX === null) return;
+    var dx = e.changedTouches[0].clientX - startX;
+    var dy = e.changedTouches[0].clientY - startY;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) onLeft(); else onRight();
+    }
+    startX = null; startY = null;
+  }, { passive: true });
 }
 function closeLightbox(e) {
   document.getElementById('lightbox').style.display = 'none';
