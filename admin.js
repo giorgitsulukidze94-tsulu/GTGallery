@@ -86,18 +86,34 @@ function escapeHtml(s) {
 }
 
 /* ---------- API ---------- */
+var NO_PHOTO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="75"><rect width="100%" height="100%" fill="%23e6e7eb"/><text x="50%" y="50%" font-size="11" fill="%239a9a9e" text-anchor="middle" dy=".3em">No photo</text></svg>'
+);
+
+function withTimeout_(promise, ms) {
+  var controllerTimer;
+  var timeoutPromise = new Promise(function (resolve) {
+    controllerTimer = setTimeout(function () { resolve({ ok: false, error: 'TIMEOUT' }); }, ms || 15000);
+  });
+  return Promise.race([promise, timeoutPromise]).then(function (res) { clearTimeout(controllerTimer); return res; });
+}
+
 function apiGet(action, params) {
   var url = API_URL + '?action=' + action;
   for (var k in (params || {})) url += '&' + k + '=' + encodeURIComponent(params[k]);
-  return fetch(url).then(function (r) { return r.json(); });
+  return withTimeout_(
+    fetch(url).then(function (r) { return r.json(); }).catch(function (err) { return { ok: false, error: String(err) }; })
+  );
 }
 function apiPost(action, data) {
   var body = Object.assign({ action: action, username: AUTH && AUTH.username, password: AUTH && AUTH.password }, data || {});
-  return fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body)
-  }).then(function (r) { return r.json(); });
+  return withTimeout_(
+    fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).catch(function (err) { return { ok: false, error: String(err) }; })
+  );
 }
 
 function showToast(msg) {
@@ -228,11 +244,11 @@ function drawListRows() {
 }
 
 function rowHtml(l, idx) {
-  var photo = (l.photos && l.photos[Number(l.mainPhotoIndex) || 0]) || (l.photos && l.photos[0]) || 'https://via.placeholder.com/100x75?text=No+Photo';
+  var photo = (l.photos && l.photos[Number(l.mainPhotoIndex) || 0]) || (l.photos && l.photos[0]) || NO_PHOTO;
   return (
     '<div class="admin-row" draggable="true">' +
       '<span class="drag-handle">☰</span>' +
-      '<img src="' + escapeHtml(photo) + '">' +
+      '<img src="' + escapeHtml(photo) + '" onerror="this.onerror=null;this.src=NO_PHOTO;">' +
       '<div>' +
         '<div class="row-title">' + escapeHtml(l.make) + ' ' + escapeHtml(l.model) + (l.year ? ', ' + escapeHtml(l.year) : '') + '</div>' +
         '<div class="row-sub">' + (l.price ? Number(l.price).toLocaleString('en-US') + ' ' + (l.currency === 'GEL' ? '₾' : '$') : 'ფასი არ მითითებულია') + (l.sold ? ' · 🔴 გაყიდულია' : '') + '</div>' +

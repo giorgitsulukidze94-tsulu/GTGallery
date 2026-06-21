@@ -8,11 +8,27 @@ var topbarActions = document.getElementById('topbarActions');
 document.getElementById('year') && (document.getElementById('year').textContent = new Date().getFullYear());
 
 var cache = { listings: null, settings: null };
+var NO_PHOTO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450"><rect width="100%" height="100%" fill="%23e6e7eb"/><text x="50%" y="50%" font-size="28" fill="%239a9a9e" text-anchor="middle" dy=".3em">🚗 ფოტო არ არის</text></svg>'
+);
 
-function apiGet(action, params) {
+function apiGet(action, params, timeoutMs) {
   var url = API_URL + '?action=' + action;
   for (var k in (params || {})) url += '&' + k + '=' + encodeURIComponent(params[k]);
-  return fetch(url).then(function (r) { return r.json(); });
+
+  var controller = ('AbortController' in window) ? new AbortController() : null;
+  var timer = setTimeout(function () { if (controller) controller.abort(); }, timeoutMs || 15000);
+
+  return fetch(url, controller ? { signal: controller.signal } : {})
+    .then(function (r) {
+      clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .catch(function (err) {
+      clearTimeout(timer);
+      return { ok: false, error: (err && err.name === 'AbortError') ? 'TIMEOUT' : String(err) };
+    });
 }
 
 function fmtPrice(listing) {
@@ -26,7 +42,7 @@ function fmtPrice(listing) {
 function mainPhoto(listing) {
   var photos = listing.photos || [];
   var idx = Number(listing.mainPhotoIndex) || 0;
-  return photos[idx] || photos[0] || 'https://via.placeholder.com/600x450?text=No+Photo';
+  return photos[idx] || photos[0] || NO_PHOTO;
 }
 
 function escapeHtml(s) {
@@ -58,7 +74,7 @@ function renderGrid() {
 
   load.then(function (res) {
     if (!res.ok) {
-      app.innerHTML = '<div class="empty-state">❌ მონაცემების ჩატვირთვა ვერ მოხერხდა</div>';
+      app.innerHTML = '<div class="empty-state">❌ მონაცემების ჩატვირთვა ვერ მოხერხდა (' + escapeHtml(res.error || '') + ')<br><br><button class="btn btn-primary" onclick="renderGrid()">🔄 თავიდან სცადე</button></div>';
       return;
     }
     cache.listings = res.data;
@@ -74,7 +90,7 @@ function cardHtml(l) {
   return (
     '<div class="card listing-card" onclick="location.hash=\'#/car/' + l.id + '\'">' +
       '<div class="listing-photo-wrap">' +
-        '<img src="' + escapeHtml(mainPhoto(l)) + '" loading="lazy" alt="' + escapeHtml(l.make) + ' ' + escapeHtml(l.model) + '">' +
+        '<img src="' + escapeHtml(mainPhoto(l)) + '" loading="lazy" alt="' + escapeHtml(l.make) + ' ' + escapeHtml(l.model) + '" onerror="this.onerror=null;this.src=NO_PHOTO;">' +
         (l.sold ? '<div class="sold-badge">გაყიდულია</div>' : '') +
       '</div>' +
       '<div class="listing-info">' +
@@ -120,7 +136,9 @@ function renderDetail(id) {
 
   apiGet('listing', { id: id }).then(function (res) {
     if (!res.ok) {
-      app.innerHTML = '<div class="empty-state">❌ განცხადება ვერ მოიძებნა</div>';
+      app.innerHTML = '<div class="empty-state">❌ განცხადება ვერ ჩაიტვირთა (' + escapeHtml(res.error || '') + ')<br><br>' +
+        '<button class="btn btn-primary" onclick="renderDetail(\'' + escapeHtml(id) + '\')">🔄 თავიდან სცადე</button> ' +
+        '<a href="#/" class="btn btn-ghost">← სიაში დაბრუნება</a></div>';
       return;
     }
     var l = res.data;
@@ -151,10 +169,10 @@ function renderDetail(id) {
       '<div style="max-width:900px;margin:0 auto;padding-bottom:60px;">' +
         '<div class="detail-gallery" id="mainPhotoWrap">' +
           (l.sold ? '<div class="sold-badge" style="font-size:15px;">გაყიდულია</div>' : '') +
-          '<img id="mainPhotoImg" src="' + escapeHtml(photos[mainIdx] || photos[0]) + '" onclick="openLightbox(' + mainIdx + ')">' +
+          '<img id="mainPhotoImg" src="' + escapeHtml(photos[mainIdx] || photos[0]) + '" onclick="openLightbox(' + mainIdx + ')" onerror="this.onerror=null;this.src=NO_PHOTO;">' +
         '</div>' +
         (photos.length > 1 ? '<div class="thumb-row" id="thumbRow">' + photos.map(function (p, i) {
-          return '<img src="' + escapeHtml(p) + '" class="' + (i === mainIdx ? 'active' : '') + '" onclick="setMainPhoto(' + i + ')">';
+          return '<img src="' + escapeHtml(p) + '" class="' + (i === mainIdx ? 'active' : '') + '" onclick="setMainPhoto(' + i + ')" onerror="this.onerror=null;this.src=NO_PHOTO;">';
         }).join('') + '</div>' : '') +
 
         '<h1 style="margin:18px 0 4px;font-size:26px;">' + escapeHtml(l.make) + ' ' + escapeHtml(l.model) + (l.year ? ', ' + escapeHtml(l.year) : '') + '</h1>' +
