@@ -183,9 +183,17 @@ function renderDetail(id) {
     var actionsHtml =
       (l.contactPhone ? '<a class="btn btn-blue" href="tel:' + escapeHtml(l.contactPhone) + '">📞 დარეკვა</a>' : '') +
       (l.contactWhatsapp ? '<a class="btn btn-green" target="_blank" href="https://wa.me/' + escapeHtml(String(l.contactWhatsapp).replace(/[^0-9]/g, '')) + '">💬 WhatsApp</a>' : '') +
-      (l.sourceLink ? '<a class="btn btn-ghost" target="_blank" href="' + escapeHtml(l.sourceLink) + '">🔗 ნახე ' + escapeHtml(l.sourceSite || 'საიტზე') + '</a>' : '') +
       '<button class="btn btn-ghost" onclick="shareListing()">📤 გაზიარება</button>' +
       '<button class="btn btn-ghost" onclick="copyLink()">🔗 ლინკის კოპირება</button>';
+
+    var sourceLinkHtml = l.sourceLink ?
+      '<a class="source-link" target="_blank" href="' + escapeHtml(l.sourceLink) + '">' +
+        '<span class="source-link-icon">📷</span>' +
+        '<span class="source-link-text"><strong>მანქანის აუქციონის ფოტოები</strong>' +
+          (l.sourceSite ? '<br><span class="source-link-sub">წყარო: ' + escapeHtml(l.sourceSite) + '</span>' : '') +
+        '</span>' +
+        '<span class="source-link-arrow">↗</span>' +
+      '</a>' : '';
 
     app.innerHTML =
       '<div style="max-width:900px;margin:0 auto;padding-bottom:60px;">' +
@@ -199,6 +207,8 @@ function renderDetail(id) {
 
         '<h1 style="margin:18px 0 4px;font-size:26px;">' + escapeHtml(l.make) + ' ' + escapeHtml(l.model) + (l.year ? ', ' + escapeHtml(l.year) : '') + '</h1>' +
         '<div style="font-size:22px;font-weight:800;color:var(--accent);margin-bottom:6px;">' + fmtPrice(l) + (l.tradeIn ? ' · 🔁 გაცვლა შესაძლებელია' : '') + '</div>' +
+
+        sourceLinkHtml +
 
         '<div class="action-bar">' + actionsHtml + '</div>' +
 
