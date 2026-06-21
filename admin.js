@@ -118,7 +118,7 @@ function boot() {
 function renderLogin() {
   root.innerHTML =
     '<div class="login-screen"><div class="login-card">' +
-      '<h1>GT <span style="color:#ff7a59;">GALLERY</span></h1>' +
+      '<h1 style="display:flex;align-items:center;justify-content:center;gap:10px;"><img src="https://i.ibb.co/1JsKZnrH/Gemini-Generated-Image-jrilsljrilsljril.png" alt="GT GALLERY" class="logo-img">GT <span style="color:#ff7a59;">GALLERY</span></h1>' +
       '<div class="field"><label>მომხმარებელი</label><input id="loginUser" type="text" autocomplete="username"></div>' +
       '<div class="field"><label>პაროლი</label><input id="loginPass" type="password" autocomplete="current-password"></div>' +
       '<button class="btn btn-primary" style="width:100%;" onclick="doLogin()">შესვლა</button>' +
@@ -155,7 +155,7 @@ function renderShell() {
   root.innerHTML =
     '<div class="admin-shell">' +
       '<div class="admin-sidebar">' +
-        '<div class="logo" style="margin-bottom:24px;">GT <span style="color:#ff7a59;">GALLERY</span></div>' +
+        '<div class="logo" style="margin-bottom:24px;"><img src="https://i.ibb.co/1JsKZnrH/Gemini-Generated-Image-jrilsljrilsljril.png" alt="GT GALLERY" class="logo-img">GT <span style="color:#ff7a59;">GALLERY</span></div>' +
         '<div class="nav-item" data-view="list">📋 განცხადებები</div>' +
         '<div class="nav-item" data-view="form">➕ ახალი დამატება</div>' +
         '<div class="nav-item" data-view="settings">⚙️ პარამეტრები</div>' +
@@ -166,7 +166,10 @@ function renderShell() {
 
   document.querySelectorAll('.nav-item[data-view]').forEach(function (el) {
     el.addEventListener('click', function () {
-      if (el.dataset.view === 'form') editingListing = null;
+      if (el.dataset.view === 'form') {
+        editingListing = null;
+        initFormState();
+      }
       navigate(el.dataset.view);
     });
   });
@@ -276,6 +279,7 @@ function removeListing(id) {
 
 function editListing(id) {
   editingListing = listingsCache.find(function (l) { return l.id === id; });
+  initFormState();
   navigate('form');
 }
 
@@ -286,8 +290,16 @@ function defaultFormState() {
   return { features: [], photos: [], mainPhotoIndex: 0, visible: true, sold: false, currency: 'USD', mileageUnit: 'კმ' };
 }
 
-function renderFormView() {
+// მხოლოდ ფორმაში პირველად შესვლისას (ან რედაქტირების დაწყებისას) გამოიძახება —
+// renderFormView-ის ხელახალი გამოძახება (chip-ების დაჭერისას) ამას არ უნდა აღრესტარტავდეს,
+// თორემ უკვე შეყვანილი მონაცემები წაიშლება.
+function initFormState() {
   formState = editingListing ? JSON.parse(JSON.stringify(editingListing)) : defaultFormState();
+  if (!formState.features) formState.features = [];
+  if (!formState.photos) formState.photos = [];
+}
+
+function renderFormView() {
   var main = document.getElementById('mainContent');
 
   var html = '<h2>' + (editingListing ? '✏️ განცხადების რედაქტირება' : '➕ ახალი განცხადება') + '</h2>';
@@ -346,12 +358,7 @@ function renderField(f) {
     return '<div class="field"><label>' + f.label + req + '</label><div class="choice-group" id="choice-' + f.key + '">' + chips + '</div></div>';
   }
   if (f.type === 'multi-choice') {
-    var current = formState[f.key] || [];
-    var chips2 = f.options.map(function (o) {
-      var active = current.indexOf(o) !== -1;
-      return '<div class="choice ' + (active ? 'active' : '') + '" onclick="toggleMultiChoice(\'' + f.key + '\', \'' + o + '\')">' + (active ? '✓ ' : '') + escapeHtml(o) + '</div>';
-    }).join('');
-    return '<div class="field"><div class="choice-group" id="choice-' + f.key + '">' + chips2 + '</div></div>';
+    return '<div class="field"><div class="choice-group" id="choice-' + f.key + '">' + multiChoiceChips(f.key, f.options) + '</div></div>';
   }
   if (f.type === 'toggle') {
     return '<div class="field" style="display:flex;align-items:center;gap:12px;">' +
@@ -371,11 +378,25 @@ function setChoice(key, value) {
   });
 }
 
+function multiChoiceChips(key, options) {
+  var current = formState[key] || [];
+  return options.map(function (o) {
+    var active = current.indexOf(o) !== -1;
+    return '<div class="choice ' + (active ? 'active' : '') + '" data-value="' + escapeHtml(o) + '" onclick="toggleMultiChoice(\'' + key + '\', \'' + o + '\')">' + (active ? '✓ ' : '') + escapeHtml(o) + '</div>';
+  }).join('');
+}
+
 function toggleMultiChoice(key, value) {
   formState[key] = formState[key] || [];
   var idx = formState[key].indexOf(value);
   if (idx === -1) formState[key].push(value); else formState[key].splice(idx, 1);
-  renderFormView(); // re-render to keep scroll position simple; acceptable for admin tool
+  // მხოლოდ ამ ჯგუფის chip-ებს ვანახლებთ — მთელი ფორმის თავიდან არ ვხატავთ,
+  // რომ უკვე შეყვანილი მონაცემები არ წაშლილიყო.
+  var fieldDef = null;
+  FORM_SCHEMA.forEach(function (section) {
+    section.fields.forEach(function (f) { if (f.key === key) fieldDef = f; });
+  });
+  if (fieldDef) document.getElementById('choice-' + key).innerHTML = multiChoiceChips(key, fieldDef.options);
 }
 
 function setToggle(key) {
