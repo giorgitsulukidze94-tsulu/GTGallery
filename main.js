@@ -9,7 +9,7 @@ document.getElementById('year') && (document.getElementById('year').textContent 
 
 var cache = { listings: null, settings: null };
 var NO_PHOTO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450"><rect width="100%" height="100%" fill="%23e6e7eb"/><text x="50%" y="50%" font-size="28" fill="%239a9a9e" text-anchor="middle" dy=".3em">🚗 ფოტო არ არის</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450"><rect width="100%" height="100%" fill="%230d1322"/><text x="50%" y="50%" font-size="28" fill="%2393a0bd" text-anchor="middle" dy=".3em">🚗 ფოტო არ არის</text></svg>'
 );
 
 function apiGet(action, params, timeoutMs) {
@@ -50,6 +50,24 @@ function escapeHtml(s) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
+
+/* ---------- Contact strip (above header) ---------- */
+function loadContactBar() {
+  var bar = document.getElementById('contactBar');
+  if (!bar) return;
+  apiGet('settings').then(function (res) {
+    if (!res.ok || !res.data) return;
+    var s = res.data;
+    var parts = [];
+    if (s.contactPhone) parts.push('<a href="tel:' + escapeHtml(s.contactPhone) + '">📞 ' + escapeHtml(s.contactPhone) + '</a>');
+    if (s.contactWhatsapp) parts.push('<a href="https://wa.me/' + escapeHtml(String(s.contactWhatsapp).replace(/[^0-9]/g, '')) + '" target="_blank">💬 WhatsApp</a>');
+    if (s.contactAddress) parts.push('<span class="contact-address">📍 ' + escapeHtml(s.contactAddress) + '</span>');
+    if (!parts.length) return;
+    bar.innerHTML = '<div class="container contact-bar-inner">' + parts.join('') + '</div>';
+    bar.style.display = 'block';
+  });
+}
+loadContactBar();
 
 /* ---------- Router ---------- */
 function router() {
