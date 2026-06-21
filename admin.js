@@ -405,10 +405,10 @@ function setToggle(key) {
 }
 
 function photoRowHtml(url, idx) {
-  return '<div class="field" style="display:flex;gap:10px;align-items:center;" data-photo-idx="' + idx + '">' +
-    '<input type="radio" name="mainPhoto" ' + (Number(formState.mainPhotoIndex) === idx ? 'checked' : '') + ' onchange="formState.mainPhotoIndex=' + idx + '" title="მთავარი ფოტო">' +
-    '<input type="text" style="flex:1;" value="' + escapeHtml(url || '') + '" placeholder="https://i.ibb.co/..." oninput="formState.photos[' + idx + ']=this.value">' +
-    '<button class="btn btn-icon btn-ghost" onclick="removePhotoRow(' + idx + ')">✕</button>' +
+  return '<div class="field" style="display:flex;gap:10px;align-items:center;width:100%;" data-photo-idx="' + idx + '">' +
+    '<input type="radio" name="mainPhoto" style="flex:0 0 auto;width:auto;" ' + (Number(formState.mainPhotoIndex) === idx ? 'checked' : '') + ' onchange="formState.mainPhotoIndex=' + idx + '" title="მთავარი ფოტო">' +
+    '<input type="text" style="flex:1 1 auto;width:100%;min-width:0;" value="' + escapeHtml(url || '') + '" placeholder="https://i.ibb.co/..." oninput="formState.photos[' + idx + ']=this.value">' +
+    '<button class="btn btn-icon btn-ghost" style="flex:0 0 auto;" onclick="removePhotoRow(' + idx + ')">✕</button>' +
     '</div>';
 }
 
