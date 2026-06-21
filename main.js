@@ -155,7 +155,11 @@ function renderDetail(id) {
       return '<span class="feature-pill">✓ ' + escapeHtml(f) + '</span>';
     }).join('');
 
-    var desc = l.descriptionGe || l.descriptionEn || l.descriptionRu || '';
+    var descLangs = [];
+    if (l.descriptionGe) descLangs.push({ label: '🇬🇪 ქართული', text: l.descriptionGe });
+    if (l.descriptionEn) descLangs.push({ label: '🇬🇧 English', text: l.descriptionEn });
+    if (l.descriptionRu) descLangs.push({ label: '🇷🇺 Русский', text: l.descriptionRu });
+    window.__descLangs = descLangs;
 
     var shareUrl = location.href;
     var actionsHtml =
@@ -184,14 +188,22 @@ function renderDetail(id) {
 
         (featuresHtml ? '<h3>დამატებითი აღჭურვილობა</h3><div>' + featuresHtml + '</div>' : '') +
 
-        (desc ? '<h3 style="margin-top:24px;">აღწერა</h3><p style="line-height:1.6;color:var(--text);white-space:pre-wrap;">' + escapeHtml(desc) + '</p>' : '') +
+        (descLangs.length ?
+          '<h3 style="margin-top:24px;">აღწერა</h3>' +
+          (descLangs.length > 1 ? '<div class="desc-tabs" id="descTabs">' + descLangs.map(function (d, i) {
+            return '<button class="desc-tab' + (i === 0 ? ' active' : '') + '" onclick="setDescLang(' + i + ')">' + d.label + '</button>';
+          }).join('') + '</div>' : '') +
+          '<p id="descText" style="line-height:1.6;color:var(--text);white-space:pre-wrap;">' + escapeHtml(descLangs[0].text) + '</p>'
+        : '') +
 
         (l.video ? '<h3 style="margin-top:24px;">ვიდეო</h3><div style="aspect-ratio:16/9;border-radius:var(--radius-md);overflow:hidden;">' + videoEmbed(l.video) + '</div>' : '') +
       '</div>' +
 
       '<div class="lightbox" id="lightbox" style="display:none;" onclick="closeLightbox(event)">' +
         '<button class="lightbox-close" onclick="closeLightbox(event)">✕</button>' +
+        (photos.length > 1 ? '<button class="lightbox-nav lightbox-prev" onclick="lightboxNav(-1, event)">‹</button>' : '') +
         '<img id="lightboxImg" src="">' +
+        (photos.length > 1 ? '<button class="lightbox-nav lightbox-next" onclick="lightboxNav(1, event)">›</button>' : '') +
       '</div>';
 
     window.__photos = photos;
@@ -212,13 +224,37 @@ function setMainPhoto(i) {
   });
 }
 
+function setDescLang(i) {
+  var d = window.__descLangs[i];
+  if (!d) return;
+  document.getElementById('descText').textContent = d.text;
+  document.querySelectorAll('#descTabs .desc-tab').forEach(function (btn, idx) {
+    btn.classList.toggle('active', idx === i);
+  });
+}
+
 function openLightbox(i) {
+  window.__lightboxIndex = i;
   document.getElementById('lightboxImg').src = window.__photos[i];
   document.getElementById('lightbox').style.display = 'flex';
 }
 function closeLightbox(e) {
   document.getElementById('lightbox').style.display = 'none';
 }
+function lightboxNav(delta, e) {
+  if (e) e.stopPropagation();
+  var photos = window.__photos || [];
+  if (!photos.length) return;
+  window.__lightboxIndex = ((window.__lightboxIndex || 0) + delta + photos.length) % photos.length;
+  document.getElementById('lightboxImg').src = photos[window.__lightboxIndex];
+}
+document.addEventListener('keydown', function (e) {
+  var lb = document.getElementById('lightbox');
+  if (!lb || lb.style.display !== 'flex') return;
+  if (e.key === 'ArrowLeft') lightboxNav(-1);
+  else if (e.key === 'ArrowRight') lightboxNav(1);
+  else if (e.key === 'Escape') closeLightbox();
+});
 
 function shareListing() {
   var title = document.title;
