@@ -160,7 +160,7 @@ function renderDetail(id) {
     var shareUrl = location.href;
     var actionsHtml =
       (l.contactPhone ? '<a class="btn btn-blue" href="tel:' + escapeHtml(l.contactPhone) + '">📞 დარეკვა</a>' : '') +
-      (l.contactWhatsapp ? '<a class="btn btn-green" target="_blank" href="https://wa.me/' + escapeHtml(l.contactWhatsapp.replace(/[^0-9]/g, '')) + '">💬 WhatsApp</a>' : '') +
+      (l.contactWhatsapp ? '<a class="btn btn-green" target="_blank" href="https://wa.me/' + escapeHtml(String(l.contactWhatsapp).replace(/[^0-9]/g, '')) + '">💬 WhatsApp</a>' : '') +
       (l.sourceLink ? '<a class="btn btn-ghost" target="_blank" href="' + escapeHtml(l.sourceLink) + '">🔗 ნახე ' + escapeHtml(l.sourceSite || 'საიტზე') + '</a>' : '') +
       '<button class="btn btn-ghost" onclick="shareListing()">📤 გაზიარება</button>' +
       '<button class="btn btn-ghost" onclick="copyLink()">🔗 ლინკის კოპირება</button>';
